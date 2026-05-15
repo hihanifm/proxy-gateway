@@ -7,7 +7,7 @@
 
 help:
 	@echo "Dev:"
-	@echo "  make build && make up   Build images + start dev stack (gateway on :8001)"
+	@echo "  make build && make up   Build images + start dev stack (gateway on :35701)"
 	@echo "  make rebuild            Full --no-cache rebuild + up"
 	@echo "  make rebuild-gateway    Rebuild gateway image only (faster)"
 	@echo "  make restart            down + up without rebuild"
@@ -15,7 +15,7 @@ help:
 	@echo "  make logs-gateway       Tail gateway logs only"
 	@echo "  make ps                 Container status"
 	@echo ""
-	@echo "Prod (explicit, runs on :8000):"
+	@echo "Prod (explicit, runs on :35700):"
 	@echo "  make prod-up            Start prod stack"
 	@echo "  make prod-down          Stop prod stack"
 	@echo "  make prod-logs          Tail prod logs"

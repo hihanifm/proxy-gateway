@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     GATEWAY_ADAPTER: str = "stub"
-    BACKEND_BASE_URL: str = "http://mock-backend:8001"
+    BACKEND_BASE_URL: str = "http://mock-backend:8000"
     BACKEND_HEALTH_PATH: str = "/health"
     BACKEND_TIMEOUT_S: float = 30.0
     HEALTH_CHECK_INTERVAL_S: int = 15
