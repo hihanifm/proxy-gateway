@@ -36,14 +36,7 @@ async def switch_adapter(body: SwitchRequest, request: Request):
     elif name == "internal":
         # backend_url is advisory — InternalAdapter may ignore it and use its own routing.
         url = body.backend_url or settings.BACKEND_BASE_URL
-        adapter = InternalAdapter()
-        import httpx
-        await adapter._client.aclose()
-        adapter._client = httpx.AsyncClient(
-            base_url=url,
-            timeout=settings.BACKEND_TIMEOUT_S,
-        )
-        new_adapter = adapter
+        new_adapter = InternalAdapter(base_url=url)
 
     elif name == "openai":
         key = body.api_key or settings.OPENAI_API_KEY

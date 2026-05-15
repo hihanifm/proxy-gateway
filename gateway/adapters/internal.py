@@ -30,9 +30,9 @@ class InternalAdapter(BaseAdapter):
     Fill in _to_internal() and _from_internal() once the backend schema is finalized.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, base_url: str | None = None) -> None:
         self._client = httpx.AsyncClient(
-            base_url=settings.BACKEND_BASE_URL,
+            base_url=base_url or settings.BACKEND_BASE_URL,
             timeout=settings.BACKEND_TIMEOUT_S,
         )
 
