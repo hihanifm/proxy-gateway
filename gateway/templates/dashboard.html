@@ -115,6 +115,11 @@
   </div>
 
   <div class="section">
+    <h2>Models</h2>
+    <div id="models-body" style="font-size:0.875rem;color:#94a3b8">—</div>
+  </div>
+
+  <div class="section">
     <h2>Connect</h2>
     <p style="font-size:0.8rem;color:#64748b;margin-bottom:1rem">Point any OpenAI-compatible client at this gateway. Use any non-empty string as the API key.</p>
 
@@ -185,6 +190,34 @@
       }
     }
 
+    async function loadModels() {
+      const el = document.getElementById('models-body');
+      el.style.color = '#94a3b8';
+      el.textContent = 'Fetching…';
+      try {
+        const r = await fetch('/v1/models');
+        const d = await r.json();
+        if (!r.ok) {
+          el.style.color = '#f87171';
+          el.textContent = d.error ?? 'Error fetching models';
+          return;
+        }
+        const models = d.data ?? [];
+        if (models.length === 0) {
+          el.style.color = '#94a3b8';
+          el.textContent = 'No models returned';
+          return;
+        }
+        el.style.color = '#1e293b';
+        el.innerHTML = models
+          .map(m => `<span class="badge" style="margin-right:0.4rem;margin-bottom:0.4rem">${m.id}</span>`)
+          .join('');
+      } catch (err) {
+        el.style.color = '#f87171';
+        el.textContent = 'Failed: ' + err.message;
+      }
+    }
+
     async function loadConfig() {
       const r = await fetch('/v1/admin/config');
       const d = await r.json();
@@ -224,6 +257,7 @@
         msg.style.color = '#86efac';
         msg.textContent = `Switched to ${d.adapter}`;
         loadConfig();
+        loadModels();
       } catch (err) {
         msg.style.color = '#f87171';
         msg.textContent = err.message;
@@ -288,6 +322,7 @@ model_list:
 
     buildSnippets();
     loadConfig();
+    loadModels();
     refresh();
     setInterval(refresh, 2000);
   </script>

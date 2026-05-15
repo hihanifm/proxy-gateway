@@ -34,8 +34,8 @@ async def switch_adapter(body: SwitchRequest, request: Request):
         url = None
 
     elif name == "internal":
+        # backend_url is advisory — InternalAdapter may ignore it and use its own routing.
         url = body.backend_url or settings.BACKEND_BASE_URL
-        # Swap the client base URL by creating a fresh adapter with overridden URL
         adapter = InternalAdapter()
         import httpx
         await adapter._client.aclose()
