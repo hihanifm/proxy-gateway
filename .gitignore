@@ -6,3 +6,5 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 dist/
+# pip-cache wheels are committed; ignore only non-wheel downloads
+pip-cache/*.zip

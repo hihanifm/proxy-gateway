@@ -1,33 +1,68 @@
 services:
+  # ── dev profile ──────────────────────────────────────────────
   gateway:
-    platform: linux/amd64
+    profiles: ["dev"]
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-public.ecr.aws/docker/library/python:3.11-slim}
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,mock-backend}
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
-      GATEWAY_ADAPTER: internal
-      BACKEND_BASE_URL: http://mock-backend:8001
+      GATEWAY_ADAPTER: ${GATEWAY_ADAPTER:-internal}
+      BACKEND_BASE_URL: http://mock-backend:8000
       BACKEND_HEALTH_PATH: /health
       BACKEND_TIMEOUT_S: "30"
       HEALTH_CHECK_INTERVAL_S: "15"
-      GATEWAY_MODELS: gpt-3.5-turbo,gpt-4
+      GATEWAY_MODELS: ${GATEWAY_MODELS:-gpt-3.5-turbo,gpt-4}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
     depends_on:
       - mock-backend
     networks:
       - proxy-net
-    restart: unless-stopped
 
   mock-backend:
-    platform: linux/amd64
+    profiles: ["dev"]
     build:
       context: .
       dockerfile: mock_backend/Dockerfile
-    ports:
-      - "8001:8001"
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-public.ecr.aws/docker/library/python:3.11-slim}
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1}
     environment:
       MOCK_DELAY_MS: "200"
+    networks:
+      - proxy-net
+
+  # ── prod profile ─────────────────────────────────────────────
+  gateway-prod:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-public.ecr.aws/docker/library/python:3.11-slim}
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1}
+    ports:
+      - "8000:8000"
+    environment:
+      GATEWAY_ADAPTER: ${GATEWAY_ADAPTER:-internal}
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://localhost:8000}
+      BACKEND_HEALTH_PATH: /health
+      BACKEND_TIMEOUT_S: "30"
+      HEALTH_CHECK_INTERVAL_S: "15"
+      GATEWAY_MODELS: ${GATEWAY_MODELS:-gpt-3.5-turbo,gpt-4}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
     networks:
       - proxy-net
     restart: unless-stopped
