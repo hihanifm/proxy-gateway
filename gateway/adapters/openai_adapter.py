@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
+import time
 import uuid
 from collections.abc import AsyncIterator
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 from gateway.adapters.base import BaseAdapter
 from gateway.models.openai import (
@@ -27,17 +31,24 @@ class OpenAIAdapter(BaseAdapter):
         )
 
     async def chat(self, request: ChatRequest) -> ChatResponse:
+        url = str(self._client.base_url) + "chat/completions"
+        logger.debug("openai POST %s model=%s", url, request.model)
+        start = time.monotonic()
         try:
             r = await self._client.post(
                 "/chat/completions",
                 json=request.model_dump(exclude_none=True),
             )
             r.raise_for_status()
+            logger.debug("openai response status=%d duration=%.3fs", r.status_code, time.monotonic() - start)
         except httpx.TimeoutException as exc:
+            logger.warning("openai timeout model=%s duration=%.3fs", request.model, time.monotonic() - start)
             raise RuntimeError("OpenAI request timed out") from exc
         except httpx.HTTPStatusError as exc:
+            logger.warning("openai http_error status=%d model=%s", exc.response.status_code, request.model)
             raise RuntimeError(f"OpenAI returned HTTP {exc.response.status_code}: {exc.response.text}") from exc
         except httpx.RequestError as exc:
+            logger.warning("openai connection_error model=%s error=%s", request.model, exc)
             raise RuntimeError(f"OpenAI connection error: {exc}") from exc
         return ChatResponse.model_validate(r.json())
 

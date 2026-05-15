@@ -1,9 +1,12 @@
+import logging
 import time
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from gateway.stats import stats
+
+logger = logging.getLogger(__name__)
 
 _TRACKED_PATH = "/v1/chat/completions"
 
@@ -20,7 +23,16 @@ class StatsMiddleware(BaseHTTPMiddleware):
 
         await stats.request_started(client_ip)
         start = time.monotonic()
+        logger.info("request started ip=%s path=%s", client_ip, request.url.path)
+        status = 500
         try:
-            return await call_next(request)
+            response = await call_next(request)
+            status = response.status_code
+            return response
+        except Exception:
+            logger.warning("request error ip=%s path=%s", client_ip, request.url.path, exc_info=True)
+            raise
         finally:
-            await stats.request_finished(time.monotonic() - start)
+            elapsed = time.monotonic() - start
+            await stats.request_finished(elapsed)
+            logger.info("request done ip=%s status=%s duration=%.3fs", client_ip, status, elapsed)

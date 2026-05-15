@@ -6,33 +6,33 @@
   <title>LLM Gateway Dashboard</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
-    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; color: #f8fafc; }
-    h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    body { font-family: system-ui, sans-serif; background: #f0f4f8; color: #1e293b; min-height: 100vh; padding: 2rem; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; color: #0f172a; }
+    h2 { font-size: 0.75rem; font-weight: 600; margin-bottom: 1rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; }
 
     .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-    .card { background: #1e2533; border: 1px solid #2d3748; border-radius: 10px; padding: 1.25rem; }
-    .card-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
-    .card-value { font-size: 2rem; font-weight: 700; color: #f8fafc; }
-    .card-sub { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
+    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .card-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .card-value { font-size: 2rem; font-weight: 700; color: #0f172a; }
+    .card-sub { font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem; }
 
     .health-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
-    .health-healthy { background: #14532d; color: #86efac; }
-    .health-unhealthy { background: #450a0a; color: #fca5a5; }
-    .health-degraded { background: #431407; color: #fdba74; }
-    .health-unknown { background: #1e2533; color: #94a3b8; }
+    .health-healthy { background: #dcfce7; color: #166534; }
+    .health-unhealthy { background: #fee2e2; color: #991b1b; }
+    .health-degraded { background: #ffedd5; color: #9a3412; }
+    .health-unknown { background: #f1f5f9; color: #64748b; }
 
     .latency-row { display: flex; gap: 1rem; }
     .latency-item { flex: 1; }
 
     table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-    th { text-align: left; color: #64748b; font-weight: 500; padding: 0.5rem 0.75rem; border-bottom: 1px solid #2d3748; }
-    td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #1a2030; color: #cbd5e1; }
+    th { text-align: left; color: #94a3b8; font-weight: 500; padding: 0.5rem 0.75rem; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #f1f5f9; color: #334155; }
     tr:last-child td { border-bottom: none; }
-    .badge { display: inline-block; background: #1e3a5f; color: #93c5fd; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; font-family: monospace; }
+    .badge { display: inline-block; background: #eff6ff; color: #1d4ed8; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; font-family: monospace; border: 1px solid #bfdbfe; }
 
-    .section { background: #1e2533; border: 1px solid #2d3748; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.5rem; }
-    .last-updated { font-size: 0.72rem; color: #475569; margin-top: 1.5rem; }
+    .section { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .last-updated { font-size: 0.72rem; color: #94a3b8; margin-top: 1.5rem; }
   </style>
 </head>
 <body>
@@ -76,45 +76,79 @@
         <tr><th>IP Address</th><th>Requests</th></tr>
       </thead>
       <tbody id="callers-body">
-        <tr><td colspan="2" style="color:#475569">No requests yet</td></tr>
+        <tr><td colspan="2" style="color:#94a3b8">No requests yet</td></tr>
       </tbody>
     </table>
   </div>
 
   <div class="section">
     <h2>Routing</h2>
-    <div style="margin-bottom:1rem;font-size:0.875rem;color:#94a3b8">
+    <div style="margin-bottom:1rem;font-size:0.875rem;color:#475569">
       Active: <span id="current-adapter" class="badge" style="font-size:0.85rem">—</span>
-      &nbsp;→&nbsp; <span id="current-url" style="color:#64748b">—</span>
+      &nbsp;→&nbsp; <span id="current-url" style="color:#94a3b8">—</span>
     </div>
     <form id="switch-form" style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end">
       <div>
-        <label style="display:block;font-size:0.75rem;color:#94a3b8;margin-bottom:0.3rem">Adapter</label>
-        <select id="adapter-select" style="background:#0f1117;color:#e2e8f0;border:1px solid #2d3748;border-radius:6px;padding:0.4rem 0.6rem;font-size:0.875rem">
+        <label style="display:block;font-size:0.75rem;color:#64748b;margin-bottom:0.3rem">Adapter</label>
+        <select id="adapter-select" style="background:#fff;color:#1e293b;border:1px solid #e2e8f0;border-radius:6px;padding:0.4rem 0.6rem;font-size:0.875rem">
           <option value="stub">stub</option>
           <option value="internal">internal</option>
           <option value="openai">openai</option>
         </select>
       </div>
       <div id="url-group">
-        <label style="display:block;font-size:0.75rem;color:#94a3b8;margin-bottom:0.3rem">Backend URL</label>
+        <label style="display:block;font-size:0.75rem;color:#64748b;margin-bottom:0.3rem">Backend URL</label>
         <input id="backend-url" type="text" placeholder="https://api.openai.com/v1"
-          style="background:#0f1117;color:#e2e8f0;border:1px solid #2d3748;border-radius:6px;padding:0.4rem 0.6rem;font-size:0.875rem;width:280px" />
+          style="background:#fff;color:#1e293b;border:1px solid #e2e8f0;border-radius:6px;padding:0.4rem 0.6rem;font-size:0.875rem;width:280px" />
       </div>
       <div id="key-group" style="display:none">
-        <label style="display:block;font-size:0.75rem;color:#94a3b8;margin-bottom:0.3rem">API Key</label>
+        <label style="display:block;font-size:0.75rem;color:#64748b;margin-bottom:0.3rem">API Key</label>
         <input id="api-key" type="password" placeholder="sk-..."
-          style="background:#0f1117;color:#e2e8f0;border:1px solid #2d3748;border-radius:6px;padding:0.4rem 0.6rem;font-size:0.875rem;width:200px" />
+          style="background:#fff;color:#1e293b;border:1px solid #e2e8f0;border-radius:6px;padding:0.4rem 0.6rem;font-size:0.875rem;width:200px" />
       </div>
       <button type="submit"
         style="background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:0.4rem 1rem;font-size:0.875rem;cursor:pointer">
         Switch
       </button>
-      <span id="switch-msg" style="font-size:0.8rem;color:#94a3b8"></span>
+      <span id="switch-msg" style="font-size:0.8rem;color:#64748b"></span>
     </form>
   </div>
 
+  <div class="section">
+    <h2>Connect</h2>
+    <p style="font-size:0.8rem;color:#64748b;margin-bottom:1rem">Point any OpenAI-compatible client at this gateway. Use any non-empty string as the API key.</p>
+
+    <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
+      <button class="tab-btn active" onclick="showTab('python')">Python SDK</button>
+      <button class="tab-btn" onclick="showTab('curl')">curl</button>
+      <button class="tab-btn" onclick="showTab('env')">Env vars</button>
+      <button class="tab-btn" onclick="showTab('litellm')">LiteLLM</button>
+    </div>
+
+    <div id="tab-python" class="tab-panel">
+      <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><code id="code-python"></code></div>
+    </div>
+    <div id="tab-curl" class="tab-panel" style="display:none">
+      <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><code id="code-curl"></code></div>
+    </div>
+    <div id="tab-env" class="tab-panel" style="display:none">
+      <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><code id="code-env"></code></div>
+    </div>
+    <div id="tab-litellm" class="tab-panel" style="display:none">
+      <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><code id="code-litellm"></code></div>
+    </div>
+  </div>
+
   <div class="last-updated">Last updated: <span id="ts">—</span></div>
+
+  <style>
+    .tab-btn { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.3rem 0.8rem; font-size: 0.8rem; cursor: pointer; }
+    .tab-btn.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+    .code-block { position: relative; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem 1rem 1rem 1rem; overflow-x: auto; }
+    .code-block code { font-family: monospace; font-size: 0.8rem; color: #1e293b; white-space: pre; display: block; }
+    .copy-btn { position: absolute; top: 0.5rem; right: 0.5rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 5px; padding: 0.2rem 0.6rem; font-size: 0.72rem; color: #64748b; cursor: pointer; }
+    .copy-btn:hover { background: #f1f5f9; }
+  </style>
 
   <script>
     async function refresh() {
@@ -196,6 +230,63 @@
       }
     });
 
+    function buildSnippets() {
+      const base = window.location.origin + '/v1';
+      document.getElementById('code-python').textContent =
+`from openai import OpenAI
+
+client = OpenAI(
+    base_url="${base}",
+    api_key="any",
+)
+
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": "Hello"}],
+)
+print(response.choices[0].message.content)`;
+
+      document.getElementById('code-curl').textContent =
+`curl -X POST ${base}/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer any" \\
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "stream": false
+  }'`;
+
+      document.getElementById('code-env').textContent =
+`# Drop-in replacement for any tool that reads these env vars
+export OPENAI_BASE_URL="${base}"
+export OPENAI_API_KEY="any"`;
+
+      document.getElementById('code-litellm').textContent =
+`# litellm config.yaml
+model_list:
+  - model_name: gpt-3.5-turbo
+    litellm_params:
+      model: openai/gpt-3.5-turbo
+      api_base: "${base}"
+      api_key: "any"`;
+    }
+
+    function showTab(name) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + name).style.display = '';
+      event.target.classList.add('active');
+    }
+
+    function copyCode(btn) {
+      const code = btn.parentElement.querySelector('code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+      });
+    }
+
+    buildSnippets();
     loadConfig();
     refresh();
     setInterval(refresh, 2000);

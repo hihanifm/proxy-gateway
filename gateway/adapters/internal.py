@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import logging
+import time
 import uuid
 from collections.abc import AsyncIterator
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 from gateway.adapters.base import BaseAdapter
 from gateway.config import settings
@@ -62,14 +66,21 @@ class InternalAdapter(BaseAdapter):
 
     async def chat(self, request: ChatRequest) -> ChatResponse:
         payload = self._to_internal(request)
+        url = str(self._client.base_url) + "v1/generate"
+        logger.debug("backend POST %s", url)
+        start = time.monotonic()
         try:
             r = await self._client.post("/v1/generate", json=payload.model_dump())
             r.raise_for_status()
+            logger.debug("backend response status=%d duration=%.3fs", r.status_code, time.monotonic() - start)
         except httpx.TimeoutException as exc:
+            logger.warning("backend timeout url=%s duration=%.3fs", url, time.monotonic() - start)
             raise RuntimeError("Backend request timed out") from exc
         except httpx.HTTPStatusError as exc:
+            logger.warning("backend http_error status=%d url=%s", exc.response.status_code, url)
             raise RuntimeError(f"Backend returned HTTP {exc.response.status_code}") from exc
         except httpx.RequestError as exc:
+            logger.warning("backend connection_error url=%s error=%s", url, exc)
             raise RuntimeError(f"Backend connection error: {exc}") from exc
 
         internal_resp = InternalResponse.model_validate(r.json())
