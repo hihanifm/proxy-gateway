@@ -1,3 +1,5 @@
+# Reference implementation only — not imported anywhere.
+# gateway/adapters/internal.py is the live implementation (maintained separately).
 from __future__ import annotations
 
 import logging
