@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Gateway Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; color: #f8fafc; }
+    h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .card { background: #1e2533; border: 1px solid #2d3748; border-radius: 10px; padding: 1.25rem; }
+    .card-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .card-value { font-size: 2rem; font-weight: 700; color: #f8fafc; }
+    .card-sub { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
+
+    .health-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+    .health-healthy { background: #14532d; color: #86efac; }
+    .health-unhealthy { background: #450a0a; color: #fca5a5; }
+    .health-degraded { background: #431407; color: #fdba74; }
+    .health-unknown { background: #1e2533; color: #94a3b8; }
+
+    .latency-row { display: flex; gap: 1rem; }
+    .latency-item { flex: 1; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; color: #64748b; font-weight: 500; padding: 0.5rem 0.75rem; border-bottom: 1px solid #2d3748; }
+    td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #1a2030; color: #cbd5e1; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; background: #1e3a5f; color: #93c5fd; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; font-family: monospace; }
+
+    .section { background: #1e2533; border: 1px solid #2d3748; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.5rem; }
+    .last-updated { font-size: 0.72rem; color: #475569; margin-top: 1.5rem; }
+  </style>
+</head>
+<body>
+  <h1>LLM Gateway Dashboard</h1>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Total Requests</div>
+      <div class="card-value" id="total">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Active / In-Flight</div>
+      <div class="card-value" id="active">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Latency p50</div>
+      <div class="card-value" id="p50">—</div>
+      <div class="card-sub">ms</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Latency p95</div>
+      <div class="card-value" id="p95">—</div>
+      <div class="card-sub">ms</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Latency p99</div>
+      <div class="card-value" id="p99">—</div>
+      <div class="card-sub">ms</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Backend Health</div>
+      <div id="health-badge" class="health-badge health-unknown">unknown</div>
+      <div class="card-sub" id="health-err" style="margin-top:.4rem"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Callers</h2>
+    <table>
+      <thead>
+        <tr><th>IP Address</th><th>Requests</th></tr>
+      </thead>
+      <tbody id="callers-body">
+        <tr><td colspan="2" style="color:#475569">No requests yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Routing</h2>
+    <div style="margin-bottom:1rem;font-size:0.875rem;color:#94a3b8">
+      Active: <span id="current-adapter" class="badge" style="font-size:0.85rem">—</span>
+      &nbsp;→&nbsp; <span id="current-url" style="color:#64748b">—</span>
+    </div>
+    <form id="switch-form" style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end">
+      <div>
+        <label style="display:block;font-size:0.75rem;color:#94a3b8;margin-bottom:0.3rem">Adapter</label>
+        <select id="adapter-select" style="background:#0f1117;color:#e2e8f0;border:1px solid #2d3748;border-radius:6px;padding:0.4rem 0.6rem;font-size:0.875rem">
+          <option value="stub">stub</option>
+          <option value="internal">internal</option>
+          <option value="openai">openai</option>
+        </select>
+      </div>
+      <div id="url-group">
+        <label style="display:block;font-size:0.75rem;color:#94a3b8;margin-bottom:0.3rem">Backend URL</label>
+        <input id="backend-url" type="text" placeholder="https://api.openai.com/v1"
+          style="background:#0f1117;color:#e2e8f0;border:1px solid #2d3748;border-radius:6px;padding:0.4rem 0.6rem;font-size:0.875rem;width:280px" />
+      </div>
+      <div id="key-group" style="display:none">
+        <label style="display:block;font-size:0.75rem;color:#94a3b8;margin-bottom:0.3rem">API Key</label>
+        <input id="api-key" type="password" placeholder="sk-..."
+          style="background:#0f1117;color:#e2e8f0;border:1px solid #2d3748;border-radius:6px;padding:0.4rem 0.6rem;font-size:0.875rem;width:200px" />
+      </div>
+      <button type="submit"
+        style="background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:0.4rem 1rem;font-size:0.875rem;cursor:pointer">
+        Switch
+      </button>
+      <span id="switch-msg" style="font-size:0.8rem;color:#94a3b8"></span>
+    </form>
+  </div>
+
+  <div class="last-updated">Last updated: <span id="ts">—</span></div>
+
+  <script>
+    async function refresh() {
+      try {
+        const res = await fetch('/v1/stats');
+        const d = await res.json();
+
+        document.getElementById('total').textContent = d.total_requests ?? '—';
+        document.getElementById('active').textContent = d.active_requests ?? '—';
+        document.getElementById('p50').textContent = d.latency_ms?.p50 ?? '—';
+        document.getElementById('p95').textContent = d.latency_ms?.p95 ?? '—';
+        document.getElementById('p99').textContent = d.latency_ms?.p99 ?? '—';
+
+        const status = d.backend_health?.status ?? 'unknown';
+        const badge = document.getElementById('health-badge');
+        badge.textContent = status;
+        badge.className = 'health-badge health-' + status;
+        document.getElementById('health-err').textContent = d.backend_health?.last_error ?? '';
+
+        const callers = d.callers ?? {};
+        const tbody = document.getElementById('callers-body');
+        const entries = Object.entries(callers).sort((a, b) => b[1] - a[1]);
+        if (entries.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="2" style="color:#475569">No requests yet</td></tr>';
+        } else {
+          tbody.innerHTML = entries
+            .map(([ip, count]) => `<tr><td><span class="badge">${ip}</span></td><td>${count}</td></tr>`)
+            .join('');
+        }
+
+        document.getElementById('ts').textContent = new Date().toLocaleTimeString();
+      } catch (e) {
+        document.getElementById('ts').textContent = 'error: ' + e.message;
+      }
+    }
+
+    async function loadConfig() {
+      const r = await fetch('/v1/admin/config');
+      const d = await r.json();
+      document.getElementById('current-adapter').textContent = d.adapter ?? '—';
+      document.getElementById('current-url').textContent = d.backend_url ?? 'n/a';
+      document.getElementById('adapter-select').value = d.adapter ?? 'stub';
+      document.getElementById('backend-url').value = d.backend_url ?? '';
+      toggleFields(d.adapter);
+    }
+
+    function toggleFields(adapter) {
+      const urlGroup = document.getElementById('url-group');
+      const keyGroup = document.getElementById('key-group');
+      urlGroup.style.display = adapter === 'stub' ? 'none' : '';
+      keyGroup.style.display = adapter === 'openai' ? '' : 'none';
+    }
+
+    document.getElementById('adapter-select').addEventListener('change', e => toggleFields(e.target.value));
+
+    document.getElementById('switch-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const msg = document.getElementById('switch-msg');
+      msg.textContent = 'Switching…';
+      const body = { adapter: document.getElementById('adapter-select').value };
+      const url = document.getElementById('backend-url').value.trim();
+      const key = document.getElementById('api-key').value.trim();
+      if (url) body.backend_url = url;
+      if (key) body.api_key = key;
+      try {
+        const r = await fetch('/v1/admin/switch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const d = await r.json();
+        if (!r.ok) { msg.style.color = '#f87171'; msg.textContent = d.error; return; }
+        msg.style.color = '#86efac';
+        msg.textContent = `Switched to ${d.adapter}`;
+        loadConfig();
+      } catch (err) {
+        msg.style.color = '#f87171';
+        msg.textContent = err.message;
+      }
+    });
+
+    loadConfig();
+    refresh();
+    setInterval(refresh, 2000);
+  </script>
+</body>
+</html>

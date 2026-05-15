@@ -1,0 +1,35 @@
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      GATEWAY_ADAPTER: internal
+      BACKEND_BASE_URL: http://mock-backend:8001
+      BACKEND_HEALTH_PATH: /health
+      BACKEND_TIMEOUT_S: "30"
+      HEALTH_CHECK_INTERVAL_S: "15"
+      GATEWAY_MODELS: gpt-3.5-turbo,gpt-4
+    depends_on:
+      - mock-backend
+    networks:
+      - proxy-net
+    restart: unless-stopped
+
+  mock-backend:
+    build:
+      context: .
+      dockerfile: mock_backend/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      MOCK_DELAY_MS: "200"
+    networks:
+      - proxy-net
+    restart: unless-stopped
+
+networks:
+  proxy-net:
+    driver: bridge
